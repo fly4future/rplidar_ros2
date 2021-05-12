@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.9.5)
-project(rplidar_ros)
+project(rplidar_ros2)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
