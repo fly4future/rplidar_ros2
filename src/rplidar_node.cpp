@@ -56,7 +56,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions& options) : rclcpp::Node("r
   filter_min_range_                               = this->declare_parameter("filter.min_range", double(0.3));
   filter_check_distance_                          = this->declare_parameter("filter.check_distance", double(3));
   filter_scan_search_area_                        = this->declare_parameter("filter.scan_search_area", int(10));
-  filter_minimal_number_of_close_samples_         = this->declare_parameter("filter.minimal_number_of_close_samples", int(10));
+  filter_minimal_number_of_close_samples_         = this->declare_parameter("filter.minimal_number_of_close_samples", int(4));
   filter_minimal_distance_for_acceptance_samples_ = this->declare_parameter("filter.minimal_distance_for_acceptance_samples", double(1.0));
 
   RCLCPP_INFO(this->get_logger(), "RPLIDAR running on ROS 2 package rplidar_ros. SDK Version: '%s'", RPLIDAR_SDK_VERSION);
@@ -197,7 +197,7 @@ void rplidar_node::publish_scan(const double scan_time, ResponseNodeArray nodes,
       if (scan_msg.ranges[i] < filter_check_distance_) {
         int close_samples = 0;
         for (int it = -filter_scan_search_area_ / 2; it <= filter_scan_search_area_ / 2; it++) {
-          int tmpindex = it;
+          int tmpindex = i + it;
 
           if (tmpindex >= (int)scan_msg.ranges.size()) {
             tmpindex -= scan_msg.ranges.size();
