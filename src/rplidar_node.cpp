@@ -53,6 +53,13 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
   flip_x_axis_ = this->declare_parameter("flip_x_axis", false);
   scan_mode_ = this->declare_parameter("scan_mode", std::string());
   topic_name_ = this->declare_parameter("topic_name", std::string("scan"));
+  topic_name_raw_ = this->declare_parameter("topic_name_raw", std::string("scan_raw"));
+  filter_enabled_ = this->declare_parameter("filter.enabled", true);
+  filter_min_range_ = this->declare_parameter("filter.min_range", double(0.3));
+  filter_check_distance_ = this->declare_parameter("filter.check_distance", double(3));
+  filter_scan_search_area_ = this->declare_parameter("filter.scan_search_area", int(10));
+  filter_minimal_number_of_close_samples_ = this->declare_parameter("filter.minimal_number_of_close_samples", int(10));
+  filter_minimal_distance_for_acceptance_samples_ = this->declare_parameter("filter.minimal_distance_for_acceptance_samples", double(1.0));
 
   RCLCPP_INFO(
     this->get_logger(),
@@ -118,6 +125,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
 
   /* create the publisher for "/scan" */
   m_publisher = this->create_publisher<LaserScan>(topic_name_, 10);
+  m_publisher_raw = this->create_publisher<LaserScan>(topic_name_raw_, 10);
 
   /* create stop motor service */
   m_stop_motor_service = this->create_service<std_srvs::srv::Empty>(
@@ -192,7 +200,41 @@ void rplidar_node::publish_scan(
     scan_msg.intensities[apply_index] = (float) (nodes[i].quality >> 2);
   }
 
-  m_publisher->publish(scan_msg);
+  m_publisher_raw->publish(scan_msg);
+
+  sensor_msgs::msg::LaserScan filtered_scan_msg = scan_msg;
+
+  // filtering -> change single appearing points to max_distance + 10 
+  if (filter_enabled_){
+    for (int i = 0; i < (int)scan_msg.ranges.size(); i++) {
+      if (scan_msg.ranges[i] < filter_min_range_) {
+        filtered_scan_msg.ranges[i] = max_distance + 10;
+      }
+      if (scan_msg.ranges[i] < filter_check_distance_) {
+        int close_samples = 0;
+        for (int it = -filter_scan_search_area_/2; it <= filter_scan_search_area_/2; it++) {
+          int tmpindex      = it;
+
+          if (tmpindex >= (int)scan_msg.ranges.size()) {
+            tmpindex -= scan_msg.ranges.size();
+          }
+
+          if (tmpindex < 0) {
+            tmpindex += scan_msg.ranges.size();
+          }
+
+          if (fabs(scan_msg.ranges[i] - scan_msg.ranges[tmpindex]) < filter_minimal_distance_for_acceptance_samples_ ) {
+            close_samples++;
+          }
+        }
+        if (close_samples < filter_minimal_number_of_close_samples_) {
+          filtered_scan_msg.ranges[i] = max_distance + 10;
+        }
+      }
+    }
+  }
+
+  m_publisher->publish(filtered_scan_msg);
 }
 
 

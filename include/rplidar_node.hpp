@@ -101,6 +101,7 @@ private:
   std::string tcp_ip_;
   std::string serial_port_;
   std::string topic_name_;
+  std::string topic_name_raw_;
   int tcp_port_;
   int serial_baudrate_;
   std::string frame_id_;
@@ -109,8 +110,17 @@ private:
   bool flip_x_axis_;
   int m_angle_compensate_multiple;
   std::string scan_mode_;
+
+  bool   filter_enabled_;
+  double filter_min_range_;
+  double filter_check_distance_;
+  int    filter_scan_search_area_;
+  int    filter_minimal_number_of_close_samples_;
+  double filter_minimal_distance_for_acceptance_samples_;
+
   /* Publisher */
   LaserScanPub m_publisher;
+  LaserScanPub m_publisher_raw;
   /* Services */
   StopMotorService m_stop_motor_service;
   StartMotorService m_start_motor_service;
